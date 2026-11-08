@@ -1,0 +1,32 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Розкласти файли по папках
+        run: |
+          mkdir -p app/src/main/assets app/src/main/java/ua/kotelnia/pokaznyky
+          for f in build.gradle "build (1).gradle"; do
+            if [ -f "$f" ] && grep -q applicationId "$f"; then mv "$f" app/build.gradle; fi
+          done
+          [ -f "build (1).gradle" ] && mv "build (1).gradle" build.gradle || true
+          [ -f AndroidManifest.xml ] && mv AndroidManifest.xml app/src/main/ || true
+          [ -f MainActivity.java ] && mv MainActivity.java app/src/main/java/ua/kotelnia/pokaznyky/ || true
+          [ -f index.html ] && mv index.html app/src/main/assets/ || true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - run: gradle assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pokaznyky-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
